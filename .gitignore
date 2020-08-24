@@ -130,3 +130,6 @@ dmypy.json
 
 # PyCharm cache directory
 .idea/
+
+# Files
+blockchain.txt
