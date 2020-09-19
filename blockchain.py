@@ -3,6 +3,7 @@ from collections import OrderedDict
 from functools import reduce
 
 import hash_util
+from block import Block
 
 # Initializing our blockchain list
 MINING_REWARD = 10
@@ -21,18 +22,21 @@ def load_data():
         with open('blockchain.txt', mode='r') as f:
             file_content = f.readlines()
             blockchain = json.loads(file_content[0][:-1])
-            blockchain = [
-                {
-                    'previous_hash': block['previous_hash'],
-                    'index': block['index'],
-                    'proof': block['proof'],
-                    'transactions': [
-                        OrderedDict(
-                            [
-                                ('sender', tx['sender']),
-                                ('recipient', tx['recipient']),
-                                ('amount', tx['amount'])
-                            ]) for tx in block['transactions']]} for block in blockchain]
+            updated_blockchain = []
+            for block in blockchain:
+                updated_block = Block(block['index'],
+                                      block['previous_hash'],
+                                      [
+                                          OrderedDict(
+                                              [
+                                                  ('sender', tx['sender']),
+                                                  ('recipient', tx['recipient']),
+                                                  ('amount', tx['amount'])
+                                              ]) for tx in block['transactions']],
+                                      block['proof'],
+                                      block['timestamp'])
+                updated_blockchain.append(updated_block)
+            blockchain = updated_blockchain
             open_transactions = json.loads(file_content[1])
             open_transactions = [
                 {
@@ -45,7 +49,7 @@ def load_data():
     except IOError:
         print('File not found! Initializing the Blockchain with default values...')
         # Starting block for the blockchain
-        genesis_block = {'previous_hash': '', 'index': 0, 'transactions': [], 'proof': 100}
+        genesis_block = Block(0, '', [], 100, 0)
         # Adding the starting block to the blockchain
         blockchain = [genesis_block]
         # Initializing the open transactions as an empty list
@@ -56,9 +60,13 @@ load_data()
 
 
 def save_data():
+    """
+    Saves the current state of the blockchain plus its open transactions to a file.
+    """
     try:
         with open('blockchain.txt', mode='w') as f:
-            f.write(json.dumps(blockchain))
+            saveable_chain = [block.__dict__ for block in blockchain]
+            f.write(json.dumps(saveable_chain))
             f.write('\n')
             f.write(json.dumps(open_transactions))
     except IOError:
@@ -81,12 +89,12 @@ def proof_of_work():
 
 
 def get_balance(participant):
-    tx_sender = [[tx['amount'] for tx in block['transactions'] if tx['sender'] == participant] for block in blockchain]
+    tx_sender = [[tx['amount'] for tx in block.transactions if tx['sender'] == participant] for block in blockchain]
     open_tx_sender = [tx['amount'] for tx in open_transactions if tx['sender'] == participant]
     tx_sender.append(open_tx_sender)
     amount_sent = reduce(lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum + 0, tx_sender, 0)
 
-    tx_recipient = [[tx['amount'] for tx in block['transactions'] if tx['recipient'] == participant] for block in
+    tx_recipient = [[tx['amount'] for tx in block.transactions if tx['recipient'] == participant] for block in
                     blockchain]
     amount_received = reduce(lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum + 0,
                              tx_recipient, 0)
@@ -132,12 +140,7 @@ def mine_block():
     reward_transaction = OrderedDict([('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
     copied_transactions = open_transactions[:]  # Creates a new list with all the values from the original list
     copied_transactions.append(reward_transaction)
-    block = {
-        'previous_hash': hashed_block,
-        'index': len(blockchain),
-        'transactions': copied_transactions,
-        'proof': proof
-    }
+    block = Block(len(blockchain), hashed_block, copied_transactions, proof)
     blockchain.append(block)
     return True
 
@@ -170,9 +173,9 @@ def verify_chain():
     for (index, block) in enumerate(blockchain):
         if index == 0:  # Genesis block
             continue
-        if block['previous_hash'] != hash_util.hash_block(blockchain[index - 1]):
+        if block.previous_hash != hash_util.hash_block(blockchain[index - 1]):
             return False
-        if not valid_proof(block['transactions'][:-1], block['previous_hash'], block['proof']):
+        if not valid_proof(block.transactions[:-1], block.previous_hash, block.proof):
             print("Proof of Work is invalid!")
             return False
     return True
@@ -189,9 +192,8 @@ while waiting_for_input:
     print('1: Add a new transaction value')
     print('2: Mine a new block')
     print('3: Output the blockchain blocks')
-    print('4: Manipulate the blockchain')
-    print('5: Output participants')
-    print('6: Check transactions validity')
+    print('4: Output participants')
+    print('5: Check transactions validity')
     print('9: Quit')
     user_choice = get_user_choice()
     if user_choice == '1':
@@ -209,12 +211,8 @@ while waiting_for_input:
     elif user_choice == '3':
         print_blockchain_elements()
     elif user_choice == '4':
-        if len(blockchain) >= 1:
-            blockchain[0] = {'previous_hash': '', 'index': 0,
-                             'transactions': [{'sender': 'Anonymous', 'recipient': 'Anonymous', 'amount': 999}]}
-    elif user_choice == '5':
         print(participants)
-    elif user_choice == '6':
+    elif user_choice == '5':
         if verify_transactions():
             print('All transactions are valid!')
         else:
