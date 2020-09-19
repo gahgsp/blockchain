@@ -1,5 +1,5 @@
 from utils import hash_util
-
+from wallet import Wallet
 
 class Verification:
 
@@ -36,14 +36,18 @@ class Verification:
         return True
 
     @staticmethod
-    def verify_transaction(transaction, get_balance):
+    def verify_transaction(transaction, get_balance, check_funds=True):
         """
         Verify if a transaction is possible based on the amount of coins of a given sender.
         :param transaction: the transaction that should be verified.
         :return: if the transaction is possible or not.
         """
-        sender_balance = get_balance()
-        return sender_balance >= transaction.amount
+        if check_funds:
+            sender_balance = get_balance()
+            return sender_balance >= transaction.amount and Wallet.verify_transaction(transaction)
+        else:
+            return Wallet.verify_transaction(transaction)
+
 
     @classmethod
     def verify_transactions(cls, open_transactions, get_balance):
@@ -51,4 +55,4 @@ class Verification:
         Verifies all open transactions.
         :return: if all the open transactions are valid transactions.
         """
-        return all([cls.verify_transaction(tx, get_balance) for tx in open_transactions])
+        return all([cls.verify_transaction(tx, get_balance, False) for tx in open_transactions])
