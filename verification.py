@@ -3,7 +3,8 @@ import hash_util
 
 class Verification:
 
-    def valid_proof(self, transactions, last_hash, proof):
+    @staticmethod
+    def valid_proof(transactions, last_hash, proof):
         """
         Validates a proof of work number to check if it is valid to solve the hash algorithm.
         :param transactions: the transactions of the block for whick the proof is validated.
@@ -20,7 +21,8 @@ class Verification:
         # This condition can be changed, but once adding more characters to validate, the more time consuming it is.
         return guess_hash[0:2] == '00'
 
-    def verify_chain(self, blockchain):
+    @classmethod
+    def verify_chain(cls, blockchain):
         """ Verifies if the blockchain was not manipulated. """
         # When enumerating a list, it returns a pair of index and value (tuple)
         for (index, block) in enumerate(blockchain):
@@ -28,12 +30,13 @@ class Verification:
                 continue
             if block.previous_hash != hash_util.hash_block(blockchain[index - 1]):
                 return False
-            if not self.valid_proof(block.transactions[:-1], block.previous_hash, block.proof):
+            if not cls.valid_proof(block.transactions[:-1], block.previous_hash, block.proof):
                 print("Proof of Work is invalid!")
                 return False
         return True
 
-    def verify_transaction(self, transaction, get_balance):
+    @staticmethod
+    def verify_transaction(transaction, get_balance):
         """
         Verify if a transaction is possible based on the amount of coins of a given sender.
         :param transaction: the transaction that should be verified.
@@ -42,9 +45,10 @@ class Verification:
         sender_balance = get_balance()
         return sender_balance >= transaction.amount
 
-    def verify_transactions(self, open_transactions, get_balance):
+    @classmethod
+    def verify_transactions(cls, open_transactions, get_balance):
         """
         Verifies all open transactions.
         :return: if all the open transactions are valid transactions.
         """
-        return all([self.verify_transaction(tx, get_balance) for tx in open_transactions])
+        return all([cls.verify_transaction(tx, get_balance) for tx in open_transactions])
