@@ -1,6 +1,7 @@
 from utils import hash_util
 from wallet import Wallet
 
+
 class Verification:
 
     @staticmethod
@@ -47,7 +48,6 @@ class Verification:
             return sender_balance >= transaction.amount and Wallet.verify_transaction(transaction)
         else:
             return Wallet.verify_transaction(transaction)
-
 
     @classmethod
     def verify_transactions(cls, open_transactions, get_balance):

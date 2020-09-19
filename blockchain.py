@@ -5,7 +5,6 @@ from block import Block
 from transaction import Transaction
 from utils import hash_util
 from utils.verification import Verification
-
 from wallet import Wallet
 
 MINING_REWARD = 10
