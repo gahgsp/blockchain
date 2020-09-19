@@ -1,10 +1,10 @@
 import json
 from functools import reduce
 
-import hash_util
 from block import Block
 from transaction import Transaction
-from verification import Verification
+from utils import hash_util
+from utils.verification import Verification
 
 MINING_REWARD = 10
 

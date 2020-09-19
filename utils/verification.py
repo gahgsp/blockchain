@@ -1,4 +1,4 @@
-import hash_util
+from utils import hash_util
 
 
 class Verification:

@@ -1,6 +1,6 @@
 from blockchain import Blockchain
 
-from verification import Verification
+from utils.verification import Verification
 
 
 class Node:
