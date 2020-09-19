@@ -4,6 +4,7 @@ from functools import reduce
 import hash_util
 from block import Block
 from transaction import Transaction
+from verification import Verification
 
 # Initializing our blockchain list
 MINING_REWARD = 10
@@ -69,24 +70,6 @@ def save_data():
         print('Saving failed!')
 
 
-def valid_proof(transactions, last_hash, proof):
-    """
-    Validates a proof of work number to check if it is valid to solve the hash algorithm.
-    :param transactions: the transactions of the block for whick the proof is validated.
-    :param last_hash: the previous block hash which will be store in the current guess for the hash.
-    :param proof: the proof number we are testing.
-    :return: if the generated hash is a valid hash based on the given condition.
-    """
-    # Creates a String containing all the hash inputs.
-    guess = (str([transaction.to_ordered_dict() for transaction in transactions]) + str(last_hash) + str(
-        proof)).encode()
-    # Hashes the String.
-    guess_hash = hash_util.hash_string_256(guess)
-    # Only a hash based on the above inputs that starts with two 0s is valid for the algorithm.
-    # This condition can be changed, but once adding more characters to validate, the more time consuming it is.
-    return guess_hash[0:2] == '00'
-
-
 def proof_of_work():
     """
     Generates a proof of work for the open transactions, based on the last hashed block which is guessed until it fits.
@@ -95,7 +78,8 @@ def proof_of_work():
     last_block = blockchain[-1]
     last_hash = hash_util.hash_block(last_block)
     proof = 0
-    while not valid_proof(open_transactions, last_hash, proof):
+    verifier = Verification()
+    while not verifier.valid_proof(open_transactions, last_hash, proof):
         proof += 1
     return proof
 
@@ -133,16 +117,6 @@ def get_last_blockchain_value():
     return blockchain[-1]
 
 
-def verify_transaction(transaction):
-    """
-    Verify if a transaction is possible based on the amount of coins of a given sender.
-    :param transaction: the transaction that should be verified.
-    :return: if the transaction is possible or not.
-    """
-    sender_balance = get_balance(transaction.sender)
-    return sender_balance >= transaction.sender
-
-
 def add_transaction(recipient, amount=1.0, sender=owner):
     """ Appends a new value as well as the last blockchain to the blockchain.
         :argument sender The sender of the coins.
@@ -150,7 +124,8 @@ def add_transaction(recipient, amount=1.0, sender=owner):
         :argument amount The amount of coins (default[1])
     """
     transaction = Transaction(sender, recipient, amount)
-    if verify_transaction(transaction):
+    verifier = Verification()
+    if verifier.verify_transaction(transaction, get_balance):
         open_transactions.append(transaction)
         save_data()
         return True
@@ -194,28 +169,6 @@ def print_blockchain_elements():
         print('-' * 59)
 
 
-def verify_chain():
-    """ Verifies if the blockchain was not manipulated. """
-    # When enumerating a list, it returns a pair of index and value (tuple)
-    for (index, block) in enumerate(blockchain):
-        if index == 0:  # Genesis block
-            continue
-        if block.previous_hash != hash_util.hash_block(blockchain[index - 1]):
-            return False
-        if not valid_proof(block.transactions[:-1], block.previous_hash, block.proof):
-            print("Proof of Work is invalid!")
-            return False
-    return True
-
-
-def verify_transactions():
-    """
-    Verifies all open transactions.
-    :return: if all the open transactions are valid transactions.
-    """
-    return all([verify_transaction(tx) for tx in open_transactions])
-
-
 waiting_for_input = True
 
 while waiting_for_input:
@@ -241,7 +194,8 @@ while waiting_for_input:
     elif user_choice == '3':
         print_blockchain_elements()
     elif user_choice == '4':
-        if verify_transactions():
+        verifier = Verification()
+        if verifier.verify_transactions(open_transactions, get_balance):
             print('All transactions are valid!')
         else:
             print('There are invalid transactions!')
@@ -251,7 +205,8 @@ while waiting_for_input:
         print('Input was invalid, please, choose a value from the list!')
 
     # After each action, we verify if the chain was not manipulated
-    if not verify_chain():
+    verifier = Verification()
+    if not verifier.verify_chain(blockchain):
         print('Invalid blockchain!')
         waiting_for_input = False
     print('Balance of {}: {:6.2f}'.format('Kelvin', get_balance('Kelvin')))
