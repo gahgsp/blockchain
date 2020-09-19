@@ -39,7 +39,7 @@ class Verification:
         :param transaction: the transaction that should be verified.
         :return: if the transaction is possible or not.
         """
-        sender_balance = get_balance(transaction.sender)
+        sender_balance = get_balance()
         return sender_balance >= transaction.amount
 
     def verify_transactions(self, open_transactions, get_balance):
