@@ -92,6 +92,9 @@ class Blockchain:
         Calculates the current balance for a participant.
         :return: the total balance of the participant.
         """
+        if self.hosting_node is None:
+            return None
+
         participant = self.hosting_node
         # Fetches all the sent coins for the given person.
         # This fetches the sent amounts of transactions that were already included in the blockchain.
@@ -141,6 +144,9 @@ class Blockchain:
 
     def mine_block(self):
         """ Mines a new block in the blockchain. """
+        if self.hosting_node is None:
+            return None
+
         last_block = self.__chain[-1]
         hashed_block = hash_util.hash_block(last_block)
 
@@ -154,9 +160,9 @@ class Blockchain:
 
         for transaction in block.transactions:
             if not Wallet.verify_transaction(transaction):
-                return False
+                return None
 
         self.__chain.append(block)
         self.__open_transactions = []
         self.save_data()
-        return True
+        return block
