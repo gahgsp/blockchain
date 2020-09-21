@@ -41,10 +41,12 @@ class Verification:
         """
         Verify if a transaction is possible based on the amount of coins of a given sender.
         :param transaction: the transaction that should be verified.
+        :param get_balance: a reference to the function responsible for retrieving the balance.
+        :param check_funds: if we need to check the balance when validating the transaction.
         :return: if the transaction is possible or not.
         """
         if check_funds:
-            sender_balance = get_balance()
+            sender_balance = get_balance(transaction.sender)
             return sender_balance >= transaction.amount and Wallet.verify_transaction(transaction)
         else:
             return Wallet.verify_transaction(transaction)
